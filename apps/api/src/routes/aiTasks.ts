@@ -1,12 +1,15 @@
 import { Router } from 'express';
-import { generateTask } from '../services/aiTaskService';
+import { generateAndSaveTask } from '../services/aiTaskPersistenceService';
 
 const router = Router();
 
 router.post('/generate', async (req, res) => {
   try {
-    const { prompt } = req.body;
-    const task = generateTask(prompt || 'Create a new productivity task');
+    const userId = String(req.headers['x-user-id'] || '');
+    const task = await generateAndSaveTask(
+      userId,
+      req.body.prompt || 'Create a productivity task'
+    );
     res.json(task);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
