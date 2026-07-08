@@ -1,0 +1,1 @@
+export default function SignupPage() { return <main><h1>TaskForge Signup</h1><p>Create your account.</p></main>; }
