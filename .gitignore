@@ -15,3 +15,9 @@ yarn-error.log*
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+
+# Local Unity/game projects - keep separate from SaaS repo
+Assets/
+
+# Prevent accidental nested repository copies
+JustinsTaskforgeAI/
