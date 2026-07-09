@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import Nav from "@/components/Nav";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,12 +28,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full bg-gray-50 dark:bg-gray-900">
         <Providers>
-          <div className="container mx-auto px-4 py-8 max-w-7xl">
-            {children}
-          </div>
+          <Nav />
+          <ErrorBoundary>
+            <main className="max-w-7xl mx-auto px-4 py-8">
+              {children}
+            </main>
+          </ErrorBoundary>
+          <KeyboardShortcuts />
         </Providers>
       </body>
     </html>
