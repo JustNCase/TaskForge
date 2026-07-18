@@ -3,14 +3,18 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { login } from '@/lib/actions/auth'
+import OAuthButtons from '@/components/OAuthButtons'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
 
   const message = searchParams.get('message')
+  const needsVerification = error?.toLowerCase().includes('email not confirmed') || error?.toLowerCase().includes('email not verified')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -23,6 +27,22 @@ function LoginForm() {
     if (result?.error) {
       setError(result.error)
       setIsLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    const email = (document.getElementById('email') as HTMLInputElement)?.value
+    if (!email) return
+    setResending(true)
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setResendSent(true)
+    } catch {} finally {
+      setResending(false)
     }
   }
 
@@ -44,9 +64,26 @@ function LoginForm() {
 
         {error && (
           <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-200">
-            {error}
+            <p>{error}</p>
+            {needsVerification && (
+              <button onClick={handleResend} disabled={resending || resendSent}
+                className="mt-2 text-blue-600 dark:text-blue-300 hover:underline disabled:opacity-50">
+                {resendSent ? 'Verification email sent!' : resending ? 'Sending...' : 'Resend verification email'}
+              </button>
+            )}
           </div>
         )}
+
+        <OAuthButtons />
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or sign in with email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -79,6 +116,11 @@ function LoginForm() {
             />
           </div>
 
+          <div className="flex justify-end">
+            <button type="button" onClick={() => router.push('/forgot-password')} className="text-sm text-blue-600 hover:underline">
+              Forgot password?
+            </button>
+          </div>
           <button
             type="submit"
             disabled={isLoading}

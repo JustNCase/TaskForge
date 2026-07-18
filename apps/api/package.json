@@ -1,0 +1,21 @@
+{
+  "name": "@taskforge/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "stripe": "^22.3.0",
+    "@supabase/supabase-js": "^2",
+    "express": "^4",
+    "openai": "^4"
+  },
+  "devDependencies": {
+    "@types/express": "^5",
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

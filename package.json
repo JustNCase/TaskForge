@@ -3,15 +3,32 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
+    "dev:all": "concurrently \"pnpm dev:services\" \"pnpm dev:apps\"",
+    "dev:services": "concurrently \"pnpm dev:api\" \"pnpm dev:voice\" \"pnpm dev:ai\" \"pnpm dev:analytics\" \"pnpm dev:vision\" \"pnpm dev:integration\" \"pnpm dev:events\" \"pnpm dev:notifications\"",
+    "dev:apps": "concurrently \"pnpm dev:dashboard\" \"pnpm dev:web\"",
+    "dev:api": "pnpm --filter @taskforge/service-api dev",
+    "dev:voice": "pnpm --filter @taskforge/service-voice dev",
+    "dev:ai": "pnpm --filter @taskforge/service-ai dev",
+    "dev:analytics": "pnpm --filter @taskforge/service-analytics dev",
+    "dev:vision": "pnpm --filter @taskforge/service-vision dev",
+    "dev:integration": "pnpm --filter @taskforge/service-integration dev",
+    "dev:events": "pnpm --filter @taskforge/service-events dev",
+    "dev:notifications": "pnpm --filter @taskforge/service-notifications dev",
+    "dev:dashboard": "pnpm --filter @taskforge/dashboard dev",
+    "dev:web": "pnpm --filter taskforge-ai dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
+    "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.0",
     "turbo": "^2.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "concurrently": "^8.2.2"
   },
   "packageManager": "pnpm@9.15.4"
 }

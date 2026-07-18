@@ -1,0 +1,20 @@
+{
+  "name": "@taskforge/ai",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai": "^4.20.0"
+  },
+  "optionalDependencies": {
+    "@tensorflow/tfjs": "^4.17.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.2"
+  }
+}

@@ -1,4 +1,4 @@
-import { createAITask } from './openaiTaskClient';
+import { createAITask } from '../lib/openaiTaskClient';
 import { createTask } from './taskService';
 
 export async function generateAndSaveTask(userId: string, prompt: string) {
@@ -7,6 +7,8 @@ export async function generateAndSaveTask(userId: string, prompt: string) {
   return createTask({
     userId,
     title: generated.title,
-    description: generated.source
+    description: generated.description,
+    difficulty: generated.difficulty,
+    subtasks: generated.subtasks,
   });
 }

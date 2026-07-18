@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signup } from '@/lib/actions/auth'
+import OAuthButtons from '@/components/OAuthButtons'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -45,6 +46,17 @@ export default function SignupPage() {
             {error}
           </div>
         )}
+
+        <OAuthButtons />
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or sign up with email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

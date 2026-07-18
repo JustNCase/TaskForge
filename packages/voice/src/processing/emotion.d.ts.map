@@ -1,0 +1,1 @@
+{"version":3,"file":"emotion.d.ts","sourceRoot":"","sources":["emotion.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,aAAa;IAC5B,OAAO,EAAE,MAAM,CAAC;IAChB,UAAU,EAAE,MAAM,CAAC;IACnB,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB;AAED,qBAAa,eAAe;IAC1B,MAAM,CAAC,cAAc,EAAE,YAAY,GAAG,aAAa;IAInD,cAAc,CAAC,IAAI,EAAE,MAAM,GAAG,aAAa;CAO5C"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"accent.d.ts","sourceRoot":"","sources":["accent.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,YAAY;IAC3B,MAAM,EAAE,MAAM,CAAC;IACf,UAAU,EAAE,MAAM,CAAC;CACpB;AAED,qBAAa,cAAc;IACzB,MAAM,CAAC,cAAc,EAAE,YAAY,GAAG,YAAY;IAIlD,kBAAkB,CAAC,SAAS,EAAE,MAAM,EAAE,GAAG,YAAY;CAGtD"}

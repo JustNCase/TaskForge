@@ -1,0 +1,1 @@
+{"version":3,"file":"wake-word.d.ts","sourceRoot":"","sources":["wake-word.ts"],"names":[],"mappings":"AAAA,qBAAa,gBAAgB;IAC3B,OAAO,CAAC,QAAQ,CAAS;IACzB,OAAO,CAAC,WAAW,CAAkB;gBAEzB,QAAQ,GAAE,MAAkB;IAIxC,KAAK,CAAC,QAAQ,EAAE,MAAM,IAAI,GAAG,IAAI;IAKjC,IAAI,IAAI,IAAI;IAIZ,MAAM,CAAC,UAAU,EAAE,MAAM,GAAG,OAAO;CAGpC"}

@@ -1,0 +1,106 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    ports:
+      - "3001:3001"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - API_PORT=3001
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - ./data:/app/data
+
+  voice:
+    build:
+      context: .
+      dockerfile: services/voice/Dockerfile
+    ports:
+      - "3002:3002"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - VOICE_PORT=3002
+    depends_on:
+      - api
+
+  ai:
+    build:
+      context: .
+      dockerfile: services/ai/Dockerfile
+    ports:
+      - "3003:3003"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - AI_PORT=3003
+    depends_on:
+      - api
+
+  vision:
+    build:
+      context: .
+      dockerfile: services/vision/Dockerfile
+    ports:
+      - "3005:3005"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - VISION_PORT=3005
+    depends_on:
+      - api
+
+  integration:
+    build:
+      context: .
+      dockerfile: services/integration/Dockerfile
+    ports:
+      - "3006:3006"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - INTEGRATION_PORT=3006
+    depends_on:
+      - api
+
+  events:
+    build:
+      context: .
+      dockerfile: services/events/Dockerfile
+    ports:
+      - "3007:3007"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - EVENTS_PORT=3007
+    depends_on:
+      - api
+
+  notifications:
+    build:
+      context: .
+      dockerfile: services/notifications/Dockerfile
+    ports:
+      - "3008:3008"
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - NOTIFICATIONS_PORT=3008
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_VOICE_URL=ws://localhost:3002
+    depends_on:
+      - api
+      - voice

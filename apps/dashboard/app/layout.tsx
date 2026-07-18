@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TaskForge AI - AI-Powered Task Management",
-  description: "Intelligent task management with AI-powered prioritization and automation",
+  title: "TaskForge - Job Management for Contractors",
+  description: "Schedule jobs, manage clients, send estimates, and get paid — all in one app built for contractors.",
 };
 
 export default function RootLayout({

@@ -1,0 +1,19 @@
+{
+  "name": "@taskforge/service-vision",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@taskforge/core": "workspace:*",
+    "@taskforge/vision": "workspace:*",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.2"
+  }
+}

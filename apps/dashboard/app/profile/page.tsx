@@ -1,24 +1,33 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { logout } from '@/lib/actions/auth'
+import EconomyWidget from '@/components/EconomyWidget'
+import LevelProgress from '@/components/LevelProgress'
+import Link from 'next/link'
+import LoadingSkeleton from '@/components/LoadingSkeleton'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
+  const [economy, setEconomy] = useState({ level: 1, xp: 0, coins: 0 })
+
+  useEffect(() => {
+    if (user) {
+      fetch('/api/economy')
+        .then(r => r.json())
+        .then(setEconomy)
+        .catch(() => {})
+    }
+  }, [user])
 
   async function handleLogout() {
     await logout()
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    )
-  }
+  if (isLoading) return <LoadingSkeleton rows={4} />
 
   if (!user) {
     router.push('/login')
@@ -46,24 +55,31 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <EconomyWidget xp={economy.xp} coins={economy.coins} level={economy.level} />
+        <LevelProgress level={economy.level} xp={economy.xp} />
+      </div>
+
       <div className="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Account Details</h3>
-        <dl className="space-y-3">
-          <div className="flex justify-between">
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Email</dt>
-            <dd className="text-sm text-gray-900 dark:text-white">{user.email}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-sm text-gray-500 dark:text-gray-400">User ID</dt>
-            <dd className="text-sm font-mono text-gray-900 dark:text-white">{user.id}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-sm text-gray-500 dark:text-gray-400">Email Verified</dt>
-            <dd className="text-sm text-gray-900 dark:text-white">
-              {user.email_confirmed_at ? 'Yes' : 'No'}
-            </dd>
-          </div>
-        </dl>
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Quick Links</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link href="/marketplace" className="rounded-lg bg-yellow-50 dark:bg-yellow-900/20 p-4 text-center hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors">
+            <span className="text-2xl">🛍️</span>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">Marketplace</p>
+          </Link>
+          <Link href="/achievements" className="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-4 text-center hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors">
+            <span className="text-2xl">🏆</span>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">Achievements</p>
+          </Link>
+          <Link href="/pricing" className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+            <span className="text-2xl">💎</span>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">Upgrade</p>
+          </Link>
+          <Link href="/tasks" className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-center hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors">
+            <span className="text-2xl">📋</span>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">Tasks</p>
+          </Link>
+        </div>
       </div>
 
       <div className="flex justify-end">

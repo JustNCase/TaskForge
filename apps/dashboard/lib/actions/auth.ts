@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { ensureUserProfile } from '@/lib/profile'
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
@@ -18,7 +19,7 @@ export async function signup(formData: FormData) {
     return { error: 'Password must be at least 6 characters' }
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login` },
@@ -26,6 +27,10 @@ export async function signup(formData: FormData) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (data?.user) {
+    await ensureUserProfile(data.user.id, email)
   }
 
   revalidatePath('/', 'layout')

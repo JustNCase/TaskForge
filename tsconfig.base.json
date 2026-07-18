@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@taskforge/core": ["./packages/core/src"],
+      "@taskforge/ai": ["./packages/ai/src"],
+      "@taskforge/voice": ["./packages/voice/src"],
+      "@taskforge/security": ["./packages/security/src"],
+      "@taskforge/integration": ["./packages/integration/src"],
+      "@taskforge/vision": ["./packages/vision/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}
