@@ -71,6 +71,7 @@ jobs:
 
       - name: Build dashboard for Vercel
         run: pnpm --filter @taskforge/dashboard build
+        working-directory: apps/dashboard
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -85,4 +86,5 @@ jobs:
           vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} \
             --scope ${{ secrets.VERCEL_ORG_ID }} \
             --project ${{ secrets.VERCEL_PROJECT_ID }} \
-            apps/dashboard
+            --prebuilt .
+        working-directory: apps/dashboard
