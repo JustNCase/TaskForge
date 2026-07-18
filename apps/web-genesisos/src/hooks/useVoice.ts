@@ -87,7 +87,7 @@ export function useVoice(onCommand?: (intent: string, target: string) => void) {
     };
 
     wsRef.current = ws;
-  }, [addEntry]);
+  }, [addEntry, onCommand]);
 
   const playAudioResponse = (base64Data: string, format: string) => {
     try {
@@ -142,11 +142,14 @@ export function useVoice(onCommand?: (intent: string, target: string) => void) {
 
       mediaRecorder.start();
       setState((s) => ({ ...s, listening: true, error: null }));
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof DOMException && err.name === "NotAllowedError"
+        ? "Microphone access denied"
+        : "Microphone not available";
       setState((s) => ({
         ...s,
         listening: false,
-        error: err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone not available",
+        error: message,
       }));
     }
   }, []);

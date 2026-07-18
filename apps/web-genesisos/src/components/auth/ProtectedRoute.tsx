@@ -4,7 +4,7 @@ import { useAuthStore } from "@/context";
 import Link from "next/link";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated) {
     return (

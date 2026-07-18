@@ -23,6 +23,13 @@ export function useVoiceSession(userId?: string) {
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const INACTIVITY_TIMEOUT = 300000;
 
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    inactivityTimer.current = setTimeout(() => {
+      setSession((s) => ({ ...s, status: "idle" }));
+    }, INACTIVITY_TIMEOUT);
+  }, []);
+
   const start = useCallback(() => {
     const newSession: VoiceSession = {
       id: `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -35,7 +42,7 @@ export function useVoiceSession(userId?: string) {
     setSession(newSession);
     resetInactivityTimer();
     return newSession;
-  }, [userId]);
+  }, [userId, resetInactivityTimer]);
 
   const end = useCallback(() => {
     setSession((s) => ({ ...s, status: "ended" }));
@@ -50,14 +57,7 @@ export function useVoiceSession(userId?: string) {
       status: "active",
     }));
     resetInactivityTimer();
-  }, []);
-
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-    inactivityTimer.current = setTimeout(() => {
-      setSession((s) => ({ ...s, status: "idle" }));
-    }, INACTIVITY_TIMEOUT);
-  }, []);
+  }, [resetInactivityTimer]);
 
   const isExpired = useCallback(() => {
     return Date.now() - session.lastActivity > INACTIVITY_TIMEOUT;

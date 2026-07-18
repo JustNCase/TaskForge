@@ -56,7 +56,7 @@ export function useAIAssistant() {
       });
       const data = await res.json();
       return data;
-    } catch (err) {
+    } catch {
       throw new Error("Vision analysis failed");
     } finally {
       setVisionLoading(false);

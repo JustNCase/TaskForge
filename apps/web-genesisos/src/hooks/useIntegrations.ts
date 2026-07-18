@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useAIAssistant } from "@/hooks/useAIAssistant";
+import { useAIAssistant, type VisualData } from "@/hooks/useAIAssistant";
 
 interface IntegrationStatus {
   connected: boolean;
@@ -24,7 +24,7 @@ export function useIntegrations() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const syncIntegration = useCallback(async (provider: string, config: any) => {
+  const syncIntegration = useCallback(async (provider: string, config: Record<string, unknown>) => {
     setSyncing(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/integration/${provider}/sync`, {
@@ -58,7 +58,7 @@ export function useIntegrations() {
     }
   }, []);
 
-  const sendToIntegration = useCallback(async (provider: string, endpoint: string, data: any) => {
+  const sendToIntegration = useCallback(async (provider: string, endpoint: string, data: Record<string, unknown>) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/integration/${provider}/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ export function useIntegrations() {
     return res.json();
   }, []);
 
-  const registerWebhook = useCallback((event: string, handler: (payload: any) => void) => {
+  const registerWebhook = useCallback((event: string, handler: (payload: Record<string, unknown>) => void) => {
     if (typeof window === "undefined") return;
     
     const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3002"}/webhooks`);
@@ -136,18 +136,18 @@ export function useIntegrations() {
 }
 
 export interface UseIntegrationsReturn {
-  messages: any[];
+  messages: Array<{ role: string; content: string; timestamp: Date }>;
   loading: boolean;
   visionLoading: boolean;
   syncing: boolean;
   isAnalyzing: boolean;
   integrations: Record<string, IntegrationStatus>;
   webhooks: WebhookEvent[];
-  send: (text: string, visual?: any) => Promise<void>;
+  send: (text: string, visual?: VisualData) => Promise<void>;
   analyzeImage: (base64Image: string) => Promise<unknown>;
-  syncIntegration: (provider: string, config: any) => Promise<unknown>;
-  sendToIntegration: (provider: string, endpoint: string, data: any) => Promise<unknown>;
-  registerWebhook: (event: string, handler: (payload: any) => void) => WebSocket | null;
+  syncIntegration: (provider: string, config: Record<string, unknown>) => Promise<unknown>;
+  sendToIntegration: (provider: string, endpoint: string, data: Record<string, unknown>) => Promise<unknown>;
+  registerWebhook: (event: string, handler: (payload: Record<string, unknown>) => void) => WebSocket | null;
   triggerImageUpload: () => void;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   clear: () => void;

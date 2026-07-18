@@ -82,7 +82,7 @@ export default function UsersPage() {
         });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Create failed"); }
       } else {
-        const body: any = { name: form.name, email: form.email, role: form.role };
+        const body: Record<string, unknown> = { name: form.name, email: form.email, role: form.role };
         if (form.password) body.password = form.password;
         const res = await fetch(`${API}/api/auth/users/${modal!.userId}`, {
           method: "PUT",
@@ -93,8 +93,8 @@ export default function UsersPage() {
       }
       closeModal();
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Update failed");
     } finally {
       setSaving(false);
     }
@@ -109,8 +109,8 @@ export default function UsersPage() {
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Delete failed"); }
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Delete failed");
     }
   };
 
