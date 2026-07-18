@@ -11,6 +11,7 @@
     "@taskforge/core": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^20",
     "tsx": "^4.7.0",
     "typescript": "^5.3.2"
   }

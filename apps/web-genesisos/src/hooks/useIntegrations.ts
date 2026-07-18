@@ -19,7 +19,7 @@ interface WebhookEvent {
 
 export function useIntegrations() {
   const { messages, loading, visionLoading, send, analyzeImage, clear } = useAIAssistant();
-  const [integrations, setIntegrations] = useState<Record<string, IntegrationStatus>>({});n  const [webhooks, setWebhooks] = useState<WebhookEvent[]>([]);
+  const [integrations, setIntegrations] = useState<Record<string, IntegrationStatus>>({});  const [webhooks, setWebhooks] = useState<WebhookEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

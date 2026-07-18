@@ -8,7 +8,7 @@ interface AIMessage {
   timestamp: Date;
 }
 
-interface VisualData {
+export interface VisualData {
   image?: string;
   detected?: string;
   confidence?: number;
