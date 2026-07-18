@@ -11,6 +11,8 @@
   "dependencies": {
     "@taskforge/core": "workspace:*",
     "@taskforge/ai": "workspace:*",
+    "@taskforge/middleware": "workspace:*",
+    "@taskforge/security": "workspace:*",
     "openai": "^4.20.0"
   },
   "devDependencies": {

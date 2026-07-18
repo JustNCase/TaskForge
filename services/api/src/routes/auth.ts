@@ -9,7 +9,10 @@ import {
   type Role,
 } from "@taskforge/security";
 
-const JWT_SECRET = process.env.JWT_SECRET || "genesis-dev-secret-change-in-production";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "24h";
 
 const securityAuth = new AuthProvider(JWT_SECRET);
@@ -403,7 +406,7 @@ async function handleWebAuthnRegisterComplete(req: IncomingMessage, res: ServerR
   if (!userId) return;
   const body = await readBody(req);
   if (!body.credential) return sendJSON(res, 400, { error: "Credential required" });
-  const ok = securityWebAuthn.verifyRegistration(userId, body.credential, body.deviceName);
+  const ok = await securityWebAuthn.verifyRegistration(userId, body.credential, body.deviceName);
   sendJSON(res, ok ? 200 : 400, { ok, registered: ok });
 }
 
@@ -429,7 +432,7 @@ async function handleWebAuthnLoginComplete(req: IncomingMessage, res: ServerResp
 async function handleWebAuthnCredentials(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const userId = requireUser(req, res);
   if (!userId) return;
-  const credentials = securityWebAuthn.getCredentials(userId);
+  const credentials = await securityWebAuthn.getCredentials(userId);
   sendJSON(res, 200, { credentials, count: credentials.length });
 }
 

@@ -1,12 +1,12 @@
 {
   "version": 1,
   "workspace": {
-    "name": "JustinsTaskforgeAI",
+    "name": "Taskforge",
     "createdAt": 1781759598425,
     "preset": "starter"
   },
   "authorizedRoots": [
-    "C:\\justproject\\JustinsTaskforgeAI"
+    "C:\\justproject\\Taskforge"
   ],
   "reload": null
 }

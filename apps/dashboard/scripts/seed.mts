@@ -36,8 +36,8 @@ async function seed() {
 
   const supabase = createClient(supabaseUrl, serviceKey)
 
-  const email = 'dev@test.com'
-  const password = 'devpass123'
+  const email = process.env.SEED_EMAIL || 'dev@test.com'
+  const password = process.env.SEED_PASSWORD || 'changeme-' + crypto.randomUUID().slice(0, 8)
   const { data: userData, error: createError } = await supabase.auth.admin.createUser({
     email,
     password,

@@ -2,5 +2,6 @@
   "installCommand": "cd ../.. && npx pnpm install --no-frozen-lockfile",
   "buildCommand": "npx next build",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "ignoreCommand": "npx turbo-ignore @taskforge/dashboard"
 }

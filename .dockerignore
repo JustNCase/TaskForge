@@ -8,3 +8,7 @@ dist
 .turbo
 *.tsbuildinfo
 data/*.db
+.cache
+coverage
+.vscode
+.idea

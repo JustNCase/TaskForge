@@ -1,5 +1,14 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { AIOrchestrator, NLPEngine, SentimentAnalyzer, PredictionEngine, EmbeddingService, TFModelManager } from "@taskforge/ai";
+import {
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+  createCorsMiddleware,
+  sendJSON,
+  readBody,
+  compose,
+} from "@taskforge/middleware";
+import type { AuthenticatedRequest } from "@taskforge/middleware";
 
 const PORT = parseInt(process.env.AI_PORT || "3003");
 const MODEL = process.env.AI_MODEL || "gpt-4o-mini";
@@ -11,24 +20,9 @@ const prediction = new PredictionEngine(process.env.OPENAI_API_KEY, MODEL);
 const embedding = new EmbeddingService(process.env.OPENAI_API_KEY);
 const tfManager = new TFModelManager();
 
-function sendJSON(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  });
-  res.end(JSON.stringify(data));
-}
-
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
-  });
-}
+const auth = createAuthMiddleware({ publicRoutes: ["/health"] });
+const rateLimit = createRateLimitMiddleware({ windowMs: 60000, maxRequests: 60 });
+const cors = createCorsMiddleware();
 
 async function handleChat(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = JSON.parse(await readBody(req));
@@ -133,39 +127,44 @@ async function handleTFModels(req: IncomingMessage, res: ServerResponse): Promis
   }
 }
 
+const routes: Record<string, Record<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>> = {
+  "/chat": { POST: handleChat },
+  "/chat/context": { POST: handleChatContext },
+  "/chat/summarize": { POST: handleSummarize },
+  "/multimodal": { POST: handleMultimodal },
+  "/analyze": { POST: handleAnalyze },
+  "/nlp": { POST: handleNLP },
+  "/sentiment": { POST: handleSentiment },
+  "/predict": { POST: handlePredict },
+  "/embed": { POST: handleEmbed },
+  "/embed/batch": { POST: handleEmbedBatch },
+  "/embed/search": { POST: handleSemanticSearch },
+  "/models/tf": { GET: handleTFModels },
+};
+
 const server = createServer(async (req, res) => {
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  cors(req, res, () => {
+    if (req.method === "OPTIONS") return;
+
+    if (req.url === "/health") {
+      return sendJSON(res, 200, { status: "ok", service: "genesis-ai", model: MODEL });
+    }
+
+    auth(req, res, () => {
+      rateLimit(req, res, async () => {
+        try {
+          const path = req.url?.split("?")[0] || "";
+          const handler = routes[path]?.[req.method || ""];
+          if (handler) return await handler(req, res);
+        } catch (err: any) {
+          console.error(`[genesis:ai] Error on ${req.url}:`, err?.message);
+          return sendJSON(res, 500, { error: err?.message || "Internal error" });
+        }
+
+        sendJSON(res, 404, { error: "Not found" });
+      });
     });
-    return res.end();
-  }
-
-  if (req.url === "/health") {
-    return sendJSON(res, 200, { status: "ok", service: "genesis-ai", model: MODEL });
-  }
-
-  try {
-    if (req.url === "/chat" && req.method === "POST") return await handleChat(req, res);
-    if (req.url === "/chat/context" && req.method === "POST") return await handleChatContext(req, res);
-    if (req.url === "/chat/summarize" && req.method === "POST") return await handleSummarize(req, res);
-    if (req.url === "/multimodal" && req.method === "POST") return await handleMultimodal(req, res);
-    if (req.url === "/analyze" && req.method === "POST") return await handleAnalyze(req, res);
-    if (req.url === "/nlp" && req.method === "POST") return await handleNLP(req, res);
-    if (req.url === "/sentiment" && req.method === "POST") return await handleSentiment(req, res);
-    if (req.url === "/predict" && req.method === "POST") return await handlePredict(req, res);
-    if (req.url === "/embed" && req.method === "POST") return await handleEmbed(req, res);
-    if (req.url === "/embed/batch" && req.method === "POST") return await handleEmbedBatch(req, res);
-    if (req.url === "/embed/search" && req.method === "POST") return await handleSemanticSearch(req, res);
-    if (req.url === "/models/tf" && req.method === "GET") return await handleTFModels(req, res);
-  } catch (err: any) {
-    console.error(`[genesis:ai] Error on ${req.url}:`, err?.message);
-    return sendJSON(res, 500, { error: err?.message || "Internal error" });
-  }
-
-  sendJSON(res, 404, { error: "Not found" });
+  });
 });
 
 server.listen(PORT, () => {

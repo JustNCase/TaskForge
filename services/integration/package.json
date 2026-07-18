@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@taskforge/core": "workspace:*",
-    "@taskforge/integration": "workspace:*"
+    "@taskforge/integration": "workspace:*",
+    "@taskforge/middleware": "workspace:*",
+    "@taskforge/security": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",

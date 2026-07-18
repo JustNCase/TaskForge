@@ -24,7 +24,10 @@ export class JWTManager {
   private defaultExpiry: number;
 
   constructor(secret?: string, defaultExpiryMs = 3600000) {
-    this.secret = secret || process.env.JWT_SECRET || "genesis-default-secret-change-in-production";
+    if (!secret && !process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable or constructor secret is required");
+    }
+    this.secret = secret || process.env.JWT_SECRET!;
     this.defaultExpiry = defaultExpiryMs;
   }
 

@@ -1,23 +1,41 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Session, User, SupabaseClient } from '@supabase/supabase-js';
-
-let client: SupabaseClient | null = null;
-
-export function getSupabaseClient(): SupabaseClient {
-  if (client) return client;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing Supabase environment variables. ' +
-      'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local'
-    );
-  }
-
-  client = createClient(supabaseUrl, supabaseAnonKey);
-  return client;
-}
-
-export type { Session, User, SupabaseClient };
+export { getSupabaseClient, getServerClient, resetClients } from "./client";
+export type {
+  User,
+  Profile,
+  Task,
+  Subtask,
+  Project,
+  ProjectMember,
+  Client,
+  Job,
+  Estimate,
+  EstimateItem,
+  Invoice,
+  InvoiceItem,
+  Payment,
+  StoredEvent,
+  Notification,
+  NotificationPreference,
+  Achievement,
+  UserAchievement,
+  Economy,
+  Subscription,
+  Team,
+  TeamMember,
+  Wallet,
+  WalletTransaction,
+} from "./types";
+export {
+  findAll,
+  findPaginated,
+  findById,
+  insert,
+  insertMany,
+  update,
+  remove,
+  upsert,
+  count,
+} from "./crud";
+export type { QueryOptions, PaginatedResult } from "./crud";
+export { SCHEMA_VERSION, SCHEMA_SQL, TABLES } from "./schema";
+export type { TableName } from "./schema";

@@ -66,11 +66,12 @@ export function saveDatabase(): void {
 
 function seedDatabase(): void {
   const now = new Date().toISOString();
-  const password = bcrypt.hashSync("password", 10);
+  const defaultPassword = process.env.SEED_PASSWORD || crypto.randomBytes(16).toString("hex");
+  const password = bcrypt.hashSync(defaultPassword, 10);
 
   db.run(
     `INSERT INTO users (id, email, name, password, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [crypto.randomUUID(), "user@genesis.os", "Demo User", password, "admin", now, now]
+    [crypto.randomUUID(), "user@genesis.os", "Demo User", password, "user", now, now]
   );
 
   db.run(
@@ -79,7 +80,7 @@ function seedDatabase(): void {
   );
 
   saveDatabase();
-  console.log("[genesis:db] Seed users created");
+  console.log("[genesis:db] Seed users created. Set SEED_PASSWORD env var to control initial passwords.");
 }
 
 export function query(sql: string, params?: any[]): any[] {

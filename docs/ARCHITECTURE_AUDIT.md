@@ -2,7 +2,7 @@
 
 ## Current Repository Status
 
-Repository: JustNCase/JustinsTaskforgeAI
+Repository: JustNCase/Taskforge
 
 ## Confirmed
 

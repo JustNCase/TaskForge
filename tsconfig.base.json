@@ -22,7 +22,8 @@
       "@taskforge/voice": ["./packages/voice/src"],
       "@taskforge/security": ["./packages/security/src"],
       "@taskforge/integration": ["./packages/integration/src"],
-      "@taskforge/vision": ["./packages/vision/src"]
+      "@taskforge/vision": ["./packages/vision/src"],
+      "@taskforge/database": ["./packages/database/src"]
     }
   },
   "exclude": ["node_modules", "dist", ".next"]

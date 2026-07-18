@@ -1,26 +1,18 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { GitHubConnector, SlackConnector, CalendarConnector, JiraConnector } from "@taskforge/integration";
+import {
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+  createCorsMiddleware,
+  sendJSON,
+  readBody,
+} from "@taskforge/middleware";
 
 const PORT = parseInt(process.env.INTEGRATION_PORT || "3006");
 
-function sendJSON(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  });
-  res.end(JSON.stringify(data));
-}
-
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
-  });
-}
+const auth = createAuthMiddleware({ publicRoutes: ["/health"] });
+const rateLimit = createRateLimitMiddleware({ windowMs: 60000, maxRequests: 40 });
+const cors = createCorsMiddleware();
 
 function getConnectorConfig(body: any): { token?: string; owner?: string; repo?: string; webhookUrl?: string; channel?: string; baseUrl?: string; email?: string } {
   return {
@@ -142,36 +134,41 @@ async function handleJiraSearch(req: IncomingMessage, res: ServerResponse): Prom
   sendJSON(res, 200, { issues, count: issues.length });
 }
 
+const routes: Record<string, Record<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>> = {
+  "/github/issues": { POST: handleGithubIssues },
+  "/github/issues/create": { POST: handleGithubCreateIssue },
+  "/github/pulls": { POST: handleGithubPRs },
+  "/github/repo": { POST: handleGithubRepo },
+  "/slack/send": { POST: handleSlackSend },
+  "/slack/history": { POST: handleSlackHistory },
+  "/calendar/events": { POST: handleCalendarEvents },
+  "/calendar/events/create": { POST: handleCalendarCreate },
+  "/jira/search": { POST: handleJiraSearch },
+};
+
 const server = createServer(async (req, res) => {
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  cors(req, res, () => {
+    if (req.method === "OPTIONS") return;
+
+    if (req.url === "/health") {
+      return sendJSON(res, 200, { status: "ok", service: "genesis-integration" });
+    }
+
+    auth(req, res, () => {
+      rateLimit(req, res, async () => {
+        try {
+          const path = req.url?.split("?")[0] || "";
+          const handler = routes[path]?.[req.method || ""];
+          if (handler) return await handler(req, res);
+        } catch (err: any) {
+          console.error(`[genesis:integration] Error on ${req.url}:`, err?.message);
+          return sendJSON(res, 502, { error: err?.message || "Integration error" });
+        }
+
+        sendJSON(res, 404, { error: "Not found" });
+      });
     });
-    return res.end();
-  }
-
-  if (req.url === "/health") {
-    return sendJSON(res, 200, { status: "ok", service: "genesis-integration" });
-  }
-
-  try {
-    if (req.url === "/github/issues" && req.method === "POST") return await handleGithubIssues(req, res);
-    if (req.url === "/github/issues/create" && req.method === "POST") return await handleGithubCreateIssue(req, res);
-    if (req.url === "/github/pulls" && req.method === "POST") return await handleGithubPRs(req, res);
-    if (req.url === "/github/repo" && req.method === "POST") return await handleGithubRepo(req, res);
-    if (req.url === "/slack/send" && req.method === "POST") return await handleSlackSend(req, res);
-    if (req.url === "/slack/history" && req.method === "POST") return await handleSlackHistory(req, res);
-    if (req.url === "/calendar/events" && req.method === "POST") return await handleCalendarEvents(req, res);
-    if (req.url === "/calendar/events/create" && req.method === "POST") return await handleCalendarCreate(req, res);
-    if (req.url === "/jira/search" && req.method === "POST") return await handleJiraSearch(req, res);
-  } catch (err: any) {
-    console.error(`[genesis:integration] Error on ${req.url}:`, err?.message);
-    return sendJSON(res, 502, { error: err?.message || "Integration error" });
-  }
-
-  sendJSON(res, 404, { error: "Not found" });
+  });
 });
 
 server.listen(PORT, () => {

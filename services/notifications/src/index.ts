@@ -1,53 +1,63 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import {
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+  createCorsMiddleware,
+  sendJSON,
+  readBody,
+} from "@taskforge/middleware";
+import { getServerClient, findAll, insert, update, count } from "@taskforge/database";
+import type { Notification, NotificationPreference } from "@taskforge/database";
 
 const PORT = parseInt(process.env.NOTIFICATIONS_PORT || "3008");
 
-interface Notification {
-  id: string;
-  userId: string;
-  type: "info" | "success" | "warning" | "error";
-  title: string;
-  message: string;
-  source?: string;
-  actionUrl?: string;
-  read: boolean;
-  createdAt: string;
-}
-
-interface NotificationPreference {
-  userId: string;
-  email: boolean;
-  push: boolean;
-  inApp: boolean;
-  digest: "instant" | "hourly" | "daily" | "never";
-  types: Record<string, boolean>;
-}
-
-const notifications: Notification[] = [];
+const inMemoryNotifications: Notification[] = [];
 const notificationMax = 500;
 const preferences = new Map<string, NotificationPreference>();
 const userConnections = new Map<string, Set<WebSocket>>();
 let notifCounter = 0;
+let dbAvailable = false;
 
-function sendJSON(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  });
-  res.end(JSON.stringify(data));
+const auth = createAuthMiddleware({ publicRoutes: ["/health"] });
+const rateLimit = createRateLimitMiddleware({ windowMs: 60000, maxRequests: 80 });
+const cors = createCorsMiddleware();
+
+function mapFromDb(n: Notification): Notification {
+  return n;
 }
 
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
-  });
+async function initDatabase(): Promise<void> {
+  try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const client = getServerClient();
+      const notifications = await findAll<Notification>(client, "notifications", {
+        order: { column: "created_at", ascending: false },
+        limit: notificationMax,
+      });
+      inMemoryNotifications.push(...notifications.map(mapFromDb));
+
+      const prefs = await findAll<NotificationPreference>(client, "notification_preferences");
+      for (const pref of prefs) {
+        preferences.set(pref.user_id, pref);
+      }
+
+      dbAvailable = true;
+      console.log(`[genesis:notifications] Database connected, loaded ${notifications.length} notifications`);
+    } else {
+      console.log("[genesis:notifications] No database configured, using in-memory store");
+    }
+  } catch (err: any) {
+    console.warn(`[genesis:notifications] Database init failed, using in-memory: ${err?.message}`);
+  }
 }
+
+const notifTypeMap: Record<string, Notification["type"]> = {
+  info: "info",
+  success: "success",
+  warning: "warning",
+  error: "error",
+};
 
 function sendToUser(userId: string, data: unknown): void {
   const msg = JSON.stringify(data);
@@ -59,18 +69,63 @@ function sendToUser(userId: string, data: unknown): void {
   }
 }
 
-function createNotification(userId: string, type: Notification["type"], title: string, message: string, source?: string, actionUrl?: string): Notification {
+async function persistNotification(notif: Notification): Promise<void> {
+  if (!dbAvailable) return;
+  try {
+    const client = getServerClient();
+    await insert(client, "notifications", {
+      id: notif.id,
+      user_id: notif.user_id,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message,
+      source: notif.source,
+      action_url: notif.action_url,
+      read: notif.read,
+      created_at: notif.created_at,
+    });
+  } catch (err: any) {
+    console.error(`[genesis:notifications] Failed to persist notification: ${err?.message}`);
+  }
+}
+
+async function updateNotificationRead(id: string): Promise<void> {
+  if (!dbAvailable) return;
+  try {
+    const client = getServerClient();
+    await update(client, "notifications", id, { read: true });
+  } catch (err: any) {
+    console.error(`[genesis:notifications] Failed to update notification: ${err?.message}`);
+  }
+}
+
+async function createNotification(
+  userId: string,
+  type: Notification["type"],
+  title: string,
+  message: string,
+  source?: string,
+  actionUrl?: string
+): Promise<Notification> {
   const notif: Notification = {
     id: `notif_${++notifCounter}_${Date.now()}`,
-    userId, type, title, message, source, actionUrl,
+    user_id: userId,
+    type,
+    title,
+    message,
+    source: source || null,
+    action_url: actionUrl || null,
     read: false,
-    createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
   };
-  notifications.unshift(notif);
-  if (notifications.length > notificationMax) notifications.length = notificationMax;
+
+  inMemoryNotifications.unshift(notif);
+  if (inMemoryNotifications.length > notificationMax) inMemoryNotifications.length = notificationMax;
+
+  await persistNotification(notif);
 
   const pref = preferences.get(userId);
-  if (!pref || pref.inApp) {
+  if (!pref || pref.in_app) {
     sendToUser(userId, { type: "notification", notification: notif });
   }
 
@@ -82,9 +137,13 @@ async function handleSend(req: IncomingMessage, res: ServerResponse): Promise<vo
   if (!body.userId || !body.title || !body.message) {
     return sendJSON(res, 400, { error: "Missing required fields: userId, title, message" });
   }
-  const notif = createNotification(
-    body.userId, body.type || "info", body.title, body.message,
-    body.source, body.actionUrl
+  const notif = await createNotification(
+    body.userId,
+    notifTypeMap[body.type] || "info",
+    body.title,
+    body.message,
+    body.source,
+    body.actionUrl
   );
   sendJSON(res, 201, { notification: notif });
 }
@@ -97,20 +156,21 @@ async function handleListNotifications(req: IncomingMessage, res: ServerResponse
 
   if (!userId) return sendJSON(res, 400, { error: "Missing required param: userId" });
 
-  let filtered = notifications.filter((n) => n.userId === userId);
+  let filtered = inMemoryNotifications.filter((n) => n.user_id === userId);
   if (unreadOnly) filtered = filtered.filter((n) => !n.read);
   filtered = filtered.slice(0, Math.min(limit, 100));
 
-  const unreadCount = notifications.filter((n) => n.userId === userId && !n.read).length;
+  const unreadCount = inMemoryNotifications.filter((n) => n.user_id === userId && !n.read).length;
   sendJSON(res, 200, { notifications: filtered, count: filtered.length, unread: unreadCount });
 }
 
 async function handleMarkRead(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
   const id = url.pathname.replace("/notifications/", "").replace("/read", "");
-  const notif = notifications.find((n) => n.id === id);
+  const notif = inMemoryNotifications.find((n) => n.id === id);
   if (!notif) return sendJSON(res, 404, { error: "Notification not found" });
   notif.read = true;
+  await updateNotificationRead(id);
   sendJSON(res, 200, { notification: notif });
 }
 
@@ -118,8 +178,12 @@ async function handleMarkAllRead(req: IncomingMessage, res: ServerResponse): Pro
   const body = JSON.parse(await readBody(req));
   if (!body.userId) return sendJSON(res, 400, { error: "Missing required field: userId" });
   let count = 0;
-  for (const n of notifications) {
-    if (n.userId === body.userId && !n.read) { n.read = true; count++; }
+  for (const n of inMemoryNotifications) {
+    if (n.user_id === body.userId && !n.read) {
+      n.read = true;
+      count++;
+      if (dbAvailable) await updateNotificationRead(n.id);
+    }
   }
   sendToUser(body.userId, { type: "all_read", userId: body.userId });
   sendJSON(res, 200, { ok: true, markedRead: count });
@@ -131,8 +195,12 @@ async function handlePreferences(req: IncomingMessage, res: ServerResponse, url:
 
   if (req.method === "GET") {
     const pref = preferences.get(userId) || {
-      userId, email: false, push: false, inApp: true,
-      digest: "instant", types: {},
+      user_id: userId,
+      email: false,
+      push: false,
+      in_app: true,
+      digest: "instant" as const,
+      types: {},
     };
     return sendJSON(res, 200, { preferences: pref });
   }
@@ -140,17 +208,40 @@ async function handlePreferences(req: IncomingMessage, res: ServerResponse, url:
   if (req.method === "PUT") {
     const body = JSON.parse(await readBody(req));
     const existing = preferences.get(userId) || {
-      userId, email: false, push: false, inApp: true, digest: "instant" as const, types: {},
+      user_id: userId,
+      email: false,
+      push: false,
+      in_app: true,
+      digest: "instant" as const,
+      types: {},
     };
-    preferences.set(userId, {
-      userId,
+    const updated: NotificationPreference = {
+      user_id: userId,
       email: body.email ?? existing.email,
       push: body.push ?? existing.push,
-      inApp: body.inApp ?? existing.inApp,
+      in_app: body.inApp ?? existing.in_app,
       digest: body.digest ?? existing.digest,
       types: body.types ?? existing.types,
-    });
-    return sendJSON(res, 200, { preferences: preferences.get(userId) });
+    };
+    preferences.set(userId, updated);
+
+    if (dbAvailable) {
+      try {
+        const client = getServerClient();
+        await insert(client, "notification_preferences", {
+          user_id: userId,
+          email: updated.email,
+          push: updated.push,
+          in_app: updated.in_app,
+          digest: updated.digest,
+          types: updated.types,
+        });
+      } catch (err: any) {
+        console.error(`[genesis:notifications] Failed to persist preferences: ${err?.message}`);
+      }
+    }
+
+    return sendJSON(res, 200, { preferences: updated });
   }
 
   sendJSON(res, 405, { error: "Method not allowed" });
@@ -166,12 +257,12 @@ async function handleBroadcast(req: IncomingMessage, res: ServerResponse): Promi
 
   if (targetUserIds && targetUserIds.length > 0) {
     for (const userId of targetUserIds) {
-      const n = createNotification(userId, body.type || "info", body.title, body.message, "broadcast");
+      const n = await createNotification(userId, notifTypeMap[body.type] || "info", body.title, body.message, "broadcast");
       notificationIds.push(n.id);
     }
   } else {
     for (const userId of userConnections.keys()) {
-      const n = createNotification(userId, body.type || "info", body.title, body.message, "broadcast");
+      const n = await createNotification(userId, notifTypeMap[body.type] || "info", body.title, body.message, "broadcast");
       notificationIds.push(n.id);
     }
   }
@@ -180,32 +271,37 @@ async function handleBroadcast(req: IncomingMessage, res: ServerResponse): Promi
 }
 
 const httpServer = createServer(async (req, res) => {
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  cors(req, res, () => {
+    if (req.method === "OPTIONS") return;
+
+    if (req.url === "/health") {
+      return sendJSON(res, 200, {
+        status: "ok",
+        service: "taskforge-notifications",
+        stored: inMemoryNotifications.length,
+        database: dbAvailable,
+      });
+    }
+
+    auth(req, res, () => {
+      rateLimit(req, res, async () => {
+        try {
+          const path = req.url?.split("?")[0];
+          if (path === "/send" && req.method === "POST") return await handleSend(req, res);
+          if (path === "/broadcast" && req.method === "POST") return await handleBroadcast(req, res);
+          if (path === "/notifications" && req.method === "GET") return await handleListNotifications(req, res);
+          if (path === "/notifications/read-all" && req.method === "POST") return await handleMarkAllRead(req, res);
+          if (path?.startsWith("/notifications/") && path?.endsWith("/read") && req.method === "POST") return await handleMarkRead(req, res);
+          if (path?.startsWith("/preferences")) return await handlePreferences(req, res, new URL(req.url, `http://${req.headers.host}`));
+        } catch (err: any) {
+          console.error(`[genesis:notifications] Error on ${req.url}:`, err?.message);
+          return sendJSON(res, 500, { error: err?.message || "Internal error" });
+        }
+
+        sendJSON(res, 404, { error: "Not found" });
+      });
     });
-    return res.end();
-  }
-
-  if (req.url === "/health") {
-    return sendJSON(res, 200, { status: "ok", service: "genesis-notifications", stored: notifications.length });
-  }
-
-  try {
-    if (req.url === "/send" && req.method === "POST") return await handleSend(req, res);
-    if (req.url === "/broadcast" && req.method === "POST") return await handleBroadcast(req, res);
-    if (req.url === "/notifications" && req.method === "GET") return await handleListNotifications(req, res);
-    if (req.url === "/notifications/read-all" && req.method === "POST") return await handleMarkAllRead(req, res);
-    if (req.url?.startsWith("/notifications/") && req.url?.endsWith("/read") && req.method === "POST") return await handleMarkRead(req, res);
-    if (req.url?.startsWith("/preferences")) return await handlePreferences(req, res, new URL(req.url, `http://${req.headers.host}`));
-  } catch (err: any) {
-    console.error(`[genesis:notifications] Error on ${req.url}:`, err?.message);
-    return sendJSON(res, 500, { error: err?.message || "Internal error" });
-  }
-
-  sendJSON(res, 404, { error: "Not found" });
+  });
 });
 
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
@@ -256,11 +352,13 @@ wss.on("connection", (ws: WebSocket) => {
     }
   });
 
-  ws.send(JSON.stringify({ type: "connected", message: "Connected to genesis-notifications" }));
+  ws.send(JSON.stringify({ type: "connected", message: "Connected to taskforge-notifications" }));
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`[genesis:notifications] Ready at http://localhost:${PORT}`);
-  console.log(`[genesis:notifications] WebSocket at ws://localhost:${PORT}/ws`);
-  console.log(`[genesis:notifications] Endpoints: POST /send, POST /broadcast, GET /notifications, POST /notifications/read-all, GET|PUT /preferences`);
+initDatabase().then(() => {
+  httpServer.listen(PORT, () => {
+    console.log(`[genesis:notifications] Ready at http://localhost:${PORT}`);
+    console.log(`[genesis:notifications] WebSocket at ws://localhost:${PORT}/ws`);
+    console.log(`[genesis:notifications] Endpoints: POST /send, POST /broadcast, GET /notifications, POST /notifications/read-all, GET|PUT /preferences`);
+  });
 });

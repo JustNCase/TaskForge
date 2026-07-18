@@ -232,6 +232,9 @@ importers:
 
   packages/core:
     devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
       typescript:
         specifier: ^5.3.2
         version: 5.9.3
@@ -242,9 +245,15 @@ importers:
         specifier: ^2
         version: 2.108.2
     devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
       typescript:
-        specifier: ^5
+        specifier: ^5.3.2
         version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
 
   packages/integration:
     devDependencies:
@@ -255,7 +264,27 @@ importers:
         specifier: ^5.3.2
         version: 5.9.3
 
+  packages/middleware:
+    dependencies:
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../security
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      typescript:
+        specifier: ^5.3.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
   packages/security:
+    dependencies:
+      '@taskforge/database':
+        specifier: workspace:*
+        version: link:../database
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -328,6 +357,34 @@ importers:
         specifier: ^5.3.2
         version: 5.9.3
 
+  services/agents:
+    dependencies:
+      '@taskforge/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@taskforge/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      tsx:
+        specifier: ^4.7.0
+        version: 4.23.0
+      typescript:
+        specifier: ^5.3.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
   services/ai:
     dependencies:
       '@taskforge/ai':
@@ -336,6 +393,12 @@ importers:
       '@taskforge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       openai:
         specifier: ^4.20.0
         version: 4.104.0(ws@8.21.1)(zod@3.25.76)
@@ -408,6 +471,15 @@ importers:
       '@taskforge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@taskforge/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       ws:
         specifier: ^8.16.0
         version: 8.21.1
@@ -421,6 +493,9 @@ importers:
       typescript:
         specifier: ^5.3.2
         version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
 
   services/integration:
     dependencies:
@@ -430,6 +505,12 @@ importers:
       '@taskforge/integration':
         specifier: workspace:*
         version: link:../../packages/integration
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -446,6 +527,15 @@ importers:
       '@taskforge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@taskforge/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       ws:
         specifier: ^8.16.0
         version: 8.21.1
@@ -459,6 +549,37 @@ importers:
       typescript:
         specifier: ^5.3.2
         version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
+  services/opportunity:
+    dependencies:
+      '@taskforge/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@taskforge/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      tsx:
+        specifier: ^4.7.0
+        version: 4.23.0
+      typescript:
+        specifier: ^5.3.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
 
   services/security:
     dependencies:
@@ -481,6 +602,12 @@ importers:
       '@taskforge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@taskforge/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@taskforge/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@taskforge/vision':
         specifier: workspace:*
         version: link:../../packages/vision
@@ -6040,8 +6167,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.2.7
       eslint: 9.39.4(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.4(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.4(jiti@2.7.0))
@@ -6063,21 +6190,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)):
-    dependencies:
-      '@nolyfill/is-core-module': 1.0.39
-      debug: 4.4.3
-      eslint: 9.39.4(jiti@2.7.0)
-      get-tsconfig: 4.14.0
-      is-bun-module: 2.0.0
-      stable-hash: 0.0.5
-      tinyglobby: 0.2.17
-      unrs-resolver: 1.12.2
-    optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))
-    transitivePeerDependencies:
-      - supports-color
-
   eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
@@ -6093,6 +6205,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.7.0)):
+    dependencies:
+      '@nolyfill/is-core-module': 1.0.39
+      debug: 4.4.3
+      eslint: 9.39.4(jiti@2.7.0)
+      get-tsconfig: 4.14.0
+      is-bun-module: 2.0.0
+      stable-hash: 0.0.5
+      tinyglobby: 0.2.17
+      unrs-resolver: 1.12.2
+    optionalDependencies:
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.7.0))
+    transitivePeerDependencies:
+      - supports-color
+
   eslint-module-utils@2.13.0(@typescript-eslint/parser@8.61.1(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       debug: 3.2.7
@@ -6104,13 +6231,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.13.0(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)):
+  eslint-module-utils@2.13.0(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.7.0)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       eslint: 9.39.4(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -6143,7 +6270,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.7.0)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -6154,7 +6281,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.4(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.13.0(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))
+      eslint-module-utils: 2.13.0(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@2.7.0))
       hasown: 2.0.4
       is-core-module: 2.16.2
       is-glob: 4.0.3

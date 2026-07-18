@@ -1,7 +1,11 @@
 const { spawn } = require("child_process");
 const path = require("path");
 
-process.env.OPENAI_API_KEY = "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";
+if (!process.env.OPENAI_API_KEY) {
+  console.error("ERROR: OPENAI_API_KEY environment variable is required.");
+  console.error("Copy .env.example to .env and fill in your keys.");
+  process.exit(1);
+}
 
 const services = [
   { name: "API", cmd: "npx", args: ["tsx", "services/api/src/index.ts"], port: 3001 },

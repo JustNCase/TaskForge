@@ -1,38 +1,45 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import {
+  createAuthMiddleware,
+  createRateLimitMiddleware,
+  createCorsMiddleware,
+  sendJSON,
+  readBody,
+} from "@taskforge/middleware";
+import { getServerClient, findAll, insert, remove } from "@taskforge/database";
+import type { StoredEvent } from "@taskforge/database";
 
 const PORT = parseInt(process.env.EVENTS_PORT || "3007");
 
-interface StoredEvent {
-  id: string;
-  type: string;
-  source: string;
-  data: Record<string, unknown>;
-  timestamp: string;
-}
+const subscriptions = new Map<string, Set<WebSocket>>();
+let eventCounter = 0;
+let dbAvailable = false;
 
 const eventLog: StoredEvent[] = [];
 const eventLogMax = 1000;
-const subscriptions = new Map<string, Set<WebSocket>>();
-let eventCounter = 0;
 
-function sendJSON(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  });
-  res.end(JSON.stringify(data));
-}
+const auth = createAuthMiddleware({ publicRoutes: ["/health"] });
+const rateLimit = createRateLimitMiddleware({ windowMs: 60000, maxRequests: 120 });
+const cors = createCorsMiddleware();
 
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
-  });
+async function initDatabase(): Promise<void> {
+  try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const client = getServerClient();
+      const events = await findAll<StoredEvent>(client, "stored_events", {
+        order: { column: "timestamp", ascending: false },
+        limit: eventLogMax,
+      });
+      eventLog.push(...events);
+      dbAvailable = true;
+      console.log(`[genesis:events] Database connected, loaded ${events.length} events`);
+    } else {
+      console.log("[genesis:events] No database configured, using in-memory store");
+    }
+  } catch (err: any) {
+    console.warn(`[genesis:events] Database init failed, using in-memory: ${err?.message}`);
+  }
 }
 
 function broadcastEvent(event: StoredEvent): void {
@@ -48,7 +55,7 @@ function broadcastEvent(event: StoredEvent): void {
   }
 }
 
-function publishEvent(type: string, source: string, data: Record<string, unknown>): StoredEvent {
+async function publishEvent(type: string, source: string, data: Record<string, unknown>): Promise<StoredEvent> {
   const event: StoredEvent = {
     id: `evt_${++eventCounter}_${Date.now()}`,
     type,
@@ -58,6 +65,16 @@ function publishEvent(type: string, source: string, data: Record<string, unknown
   };
   eventLog.unshift(event);
   if (eventLog.length > eventLogMax) eventLog.length = eventLogMax;
+
+  if (dbAvailable) {
+    try {
+      const client = getServerClient();
+      await insert(client, "stored_events", event);
+    } catch (err: any) {
+      console.error(`[genesis:events] Failed to persist event: ${err?.message}`);
+    }
+  }
+
   broadcastEvent(event);
   return event;
 }
@@ -65,7 +82,7 @@ function publishEvent(type: string, source: string, data: Record<string, unknown
 async function handlePublish(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = JSON.parse(await readBody(req));
   if (!body.type) return sendJSON(res, 400, { error: "Missing required field: type" });
-  const event = publishEvent(body.type, body.source || "api", body.data || {});
+  const event = await publishEvent(body.type, body.source || "api", body.data || {});
   sendJSON(res, 201, { event });
 }
 
@@ -92,34 +109,52 @@ async function handleGetEvent(req: IncomingMessage, res: ServerResponse, url: UR
 
 async function handleClearEvents(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   eventLog.length = 0;
+
+  if (dbAvailable) {
+    try {
+      const client = getServerClient();
+      const allEvents = await findAll<StoredEvent>(client, "stored_events", { limit: 1000 });
+      for (const evt of allEvents) {
+        await remove(client, "stored_events", evt.id);
+      }
+    } catch (err: any) {
+      console.error(`[genesis:events] Failed to clear DB: ${err?.message}`);
+    }
+  }
+
   sendJSON(res, 200, { ok: true, message: "Event log cleared" });
 }
 
 const httpServer = createServer(async (req, res) => {
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  cors(req, res, () => {
+    if (req.method === "OPTIONS") return;
+
+    if (req.url === "/health") {
+      return sendJSON(res, 200, {
+        status: "ok",
+        service: "taskforge-events",
+        stored: eventLog.length,
+        database: dbAvailable,
+      });
+    }
+
+    auth(req, res, () => {
+      rateLimit(req, res, async () => {
+        try {
+          const path = req.url?.split("?")[0];
+          if (path === "/publish" && req.method === "POST") return await handlePublish(req, res);
+          if (path === "/events" && req.method === "GET") return await handleListEvents(req, res);
+          if (path === "/events/clear" && req.method === "DELETE") return await handleClearEvents(req, res);
+          if (path?.startsWith("/events/") && req.method === "GET") return await handleGetEvent(req, res, new URL(req.url, `http://${req.headers.host}`));
+        } catch (err: any) {
+          console.error(`[genesis:events] Error on ${req.url}:`, err?.message);
+          return sendJSON(res, 500, { error: err?.message || "Internal error" });
+        }
+
+        sendJSON(res, 404, { error: "Not found" });
+      });
     });
-    return res.end();
-  }
-
-  if (req.url === "/health") {
-    return sendJSON(res, 200, { status: "ok", service: "genesis-events", stored: eventLog.length });
-  }
-
-  try {
-    if (req.url === "/publish" && req.method === "POST") return await handlePublish(req, res);
-    if (req.url === "/events" && req.method === "GET") return await handleListEvents(req, res);
-    if (req.url === "/events/clear" && req.method === "DELETE") return await handleClearEvents(req, res);
-    if (req.url?.startsWith("/events/") && req.method === "GET") return await handleGetEvent(req, res, new URL(req.url, `http://${req.headers.host}`));
-  } catch (err: any) {
-    console.error(`[genesis:events] Error on ${req.url}:`, err?.message);
-    return sendJSON(res, 500, { error: err?.message || "Internal error" });
-  }
-
-  sendJSON(res, 404, { error: "Not found" });
+  });
 });
 
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
@@ -153,8 +188,9 @@ wss.on("connection", (ws: WebSocket) => {
 
         case "publish":
           if (msg.event?.type) {
-            const event = publishEvent(msg.event.type, msg.source || "ws-client", msg.event.data || {});
-            ws.send(JSON.stringify({ type: "published", event }));
+            publishEvent(msg.event.type, msg.source || "ws-client", msg.event.data || {}).then((event) => {
+              ws.send(JSON.stringify({ type: "published", event }));
+            });
           } else {
             ws.send(JSON.stringify({ type: "error", message: "Missing event.type" }));
           }
@@ -178,11 +214,13 @@ wss.on("connection", (ws: WebSocket) => {
     }
   });
 
-  ws.send(JSON.stringify({ type: "connected", message: "Connected to genesis-events" }));
+  ws.send(JSON.stringify({ type: "connected", message: "Connected to taskforge-events" }));
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`[genesis:events] Ready at http://localhost:${PORT}`);
-  console.log(`[genesis:events] WebSocket at ws://localhost:${PORT}/ws`);
-  console.log(`[genesis:events] Endpoints: POST /publish, GET /events, DELETE /events/clear`);
+initDatabase().then(() => {
+  httpServer.listen(PORT, () => {
+    console.log(`[genesis:events] Ready at http://localhost:${PORT}`);
+    console.log(`[genesis:events] WebSocket at ws://localhost:${PORT}/ws`);
+    console.log(`[genesis:events] Endpoints: POST /publish, GET /events, DELETE /events/clear`);
+  });
 });
