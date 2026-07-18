@@ -1,0 +1,24 @@
+/taskforgeai
+  /web
+    package.json
+    next.config.js
+    tsconfig.json
+    /app
+      page.tsx
+      /forge
+        page.tsx
+      /components
+        FocusView.tsx
+  /api
+    package.json
+    tsconfig.json
+    src/index.ts
+    src/routes/parse.ts
+    src/routes/plan.ts
+    src/routes/task.ts
+    src/ai/mockLLM.ts
+  /libs
+    prisma/schema.prisma
+    ai/promptTemplates.ts
+  docker-compose.yml
+  README.md
