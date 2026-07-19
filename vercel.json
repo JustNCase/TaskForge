@@ -2,7 +2,6 @@
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm --filter @taskforge/dashboard build",
   "framework": "nextjs",
-  "outputDirectory": "apps/dashboard/.next",
-  "rootDirectory": "apps/dashboard",
+  "outputDirectory": ".next",
   "ignoreCommand": "npx turbo-ignore @taskforge/dashboard"
 }
